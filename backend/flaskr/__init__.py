@@ -19,7 +19,8 @@ def create_app(test_config=None):
         setup_db(app, database_path=database_path)
 
     """
-    @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
+    @TODO: Set up CORS. Allow '*' for origins. 
+    Delete the sample route after completing the TODOs
     """
     cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -28,8 +29,10 @@ def create_app(test_config=None):
     """
     @app.after_request
     def after_request(response):
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 
+                             'Content-Type,Authorization,true')
+        response.headers.add('Access-Control-Allow-Methods', 
+                             'GET,PATCH,POST,DELETE,OPTIONS')
         return response
 
     """
@@ -70,7 +73,8 @@ def create_app(test_config=None):
 
     TEST: At this point, when you start the application
     you should see questions and categories generated,
-    ten questions per page and pagination at the bottom of the screen for three pages.
+    ten questions per page and pagination at the bottom of 
+    the screen for three pages.
     Clicking on the page numbers should update the questions.
     """
     @app.route('/api/questions')
@@ -78,7 +82,8 @@ def create_app(test_config=None):
         try:
             questions = Question.query.order_by(Question.id).all()
             result_questions = paginate_questions(request, questions)
-            if (len(result_questions) == 0): abort(404)
+            if (len(result_questions) == 0): 
+                abort(404)
 
             categories = Category.query.all()
             result_categories = {}
@@ -100,7 +105,8 @@ def create_app(test_config=None):
     @TODO:
     Create an endpoint to DELETE question using a question ID.
 
-    TEST: When you click the trash icon next to a question, the question will be removed.
+    TEST: When you click the trash icon next to a question, 
+    the question will be removed.
     This removal will persist in the database and when you refresh the page.
     """
     @app.route('/api/questions/<int:id>', methods=['DELETE'])
@@ -129,19 +135,24 @@ def create_app(test_config=None):
     category, and difficulty score.
 
     TEST: When you submit a question on the "Add" tab,
-    the form will clear and the question will appear at the end of the last page
+    the form will clear and the question will 
+    appear at the end of the last page
     of the questions list in the "List" tab.
     """
     @app.route("/api/questions", methods=['POST'])
     def add_question():
-        body = request.get_json()
-        question = body.get('question', None)
-        answer = body.get('answer', None)
-        category = body.get('category', None)
-        difficulty = body.get('difficulty', None)
-
         try:
-            question_object = Question(question=question, answer=answer, category=category, difficulty=difficulty)
+            body = request.get_json()
+            question = body.get('question')
+            answer = body.get('answer')
+            category = body.get('category')
+            difficulty = body.get('difficulty')
+            if question is None or answer is None:
+                abort(422)
+            question_object = Question(question=question, 
+                                       answer=answer, 
+                                       category=category, 
+                                       difficulty=difficulty)
             question_object.insert()
             selection = Question.query.order_by(Question.id).all()
             result_questions = paginate_questions(request, selection)
@@ -227,9 +238,9 @@ def create_app(test_config=None):
                 questions = Question.query.all()
             else:
                 questions = Question.query.filter_by(category=quiz_form['id']).all()
-
             random_index = random.randint(0, len(questions)-1)
             next_question = questions[random_index]
+            # print('step1', questions)
 
             stillQuestions = True
             while next_question.id not in previous_form:
@@ -295,4 +306,3 @@ def create_app(test_config=None):
         }), 405
 
     return app
-

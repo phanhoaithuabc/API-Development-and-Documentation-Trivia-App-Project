@@ -14,7 +14,13 @@ class TriviaTestCase(unittest.TestCase):
         """Define test variables and initialize app."""
         self.database_name = "trivia_test"
         # self.database_path = "postgres://{}/{}".format('localhost:5432', self.database_name)
-        self.database_path = 'postgresql+psycopg2://postgres:12345678@localhost/trivia_test'
+        # self.database_path = 'postgresql+psycopg2://postgres:12345678@localhost/trivia_test'
+        user = os.getenv("DB_USER_TEST")
+        password = os.getenv("DB_PASS_TEST")
+        host = os.getenv("DB_HOST_TEST")
+        port = os.getenv("DB_PORT_TEST")
+        db_name = os.getenv("DB_NAME_TEST")
+        self.database_path = f'postgresql://{user}:{password}@{host}:{port}/{db_name}'
         
         self.app = create_app({
             "SQLALCHEMY_DATABASE_URI": self.database_path
@@ -27,10 +33,10 @@ class TriviaTestCase(unittest.TestCase):
             "category":"1", 
             "difficulty":"3"
         }
-        self.new_question_err = {}
+        self.add_question_form_err = {}
         self.quizz = {
-            "previous_questions": "1",
-            "quiz_category": {"id": 1}
+            "previous_questions": [1, 2, 3, 4],
+            "quiz_category": {"id": "5"}
         }
     
     def tearDown(self):
@@ -66,7 +72,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 404)
 
     def test_delete_question(self):
-        res = self.client().delete('/api/questions/1')
+        res = self.client().delete('/api/questions/23')
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
@@ -77,14 +83,14 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 404)
 
     def test_add_question(self):
-        res = self.client().post('/api/questions', json=self.new_question)
+        res = self.client().post('/api/questions', json=self.add_question_form)
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
         self.assertTrue(data['total_questions'])
 
     def test_add_question_error_422(self):
-        res = self.client().post('/api/questions', json=self.new_question_err)
+        res = self.client().post('/api/questions', json=self.add_question_form_err)
         self.assertEqual(res.status_code, 422)
 
     def test_search_questions(self):
@@ -93,9 +99,9 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
 
-    def test_search_questions_error_404(self):
-        res = self.client().post('/api/search', json={"searchTerm": "idfnsvidcasndv"})
-        self.assertEqual(res.status_code, 404)
+    def test_search_questions_error_500(self):
+        res = self.client().post('/api/search', json={"searchTerm": 0})
+        self.assertEqual(res.status_code, 500)
 
     def test_get_questions_by_category(self):
         res = self.client().get('/api/categories/1/questions')
