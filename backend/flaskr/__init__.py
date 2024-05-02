@@ -109,24 +109,27 @@ def create_app(test_config=None):
     the question will be removed.
     This removal will persist in the database and when you refresh the page.
     """
+    
     @app.route('/api/questions/<int:id>', methods=['DELETE'])
     def delete_question(id):
         try:
-            questions = Question.query.filter_by(id=id).one_or_none()
-            if questions is None: abort(404)
+            question = Question.query.get(id)
 
-            questions.delete()
-            selections = Question.query.order_by(Question.id).all()
-            # result_questions = paginate_questions(request, selections)
+            if not question:
+                abort(404)
+
+            question.delete()
+
+            remaining_questions = Question.query.all()
 
             return jsonify({
                 'success': True,
-                # 'questions': result_questions,
-                'total_questions': len(selections)
+                'total_questions': len(remaining_questions)
             })
+
         except Exception as e:
-            print('error: ', e)
-            abort(404)
+            print('Error:', e)
+            abort(500)
 
     """
     @TODO:
@@ -227,39 +230,49 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
+
     @app.route('/api/quizzes', methods=['POST'])
     def get_question_to_play_quiz():
         body = request.get_json()
-        quiz_form = body.get('quiz_category')
-        previous_form = body.get('previous_questions')
+        quiz_category = body.get('quiz_category', {})
+        previous_questions = body.get('previous_questions', [])
 
         try:
-            if (quiz_form['id'] == 0):
+            if quiz_category.get('id') == 0:
                 questions = Question.query.all()
             else:
-                questions = Question.query.filter_by(category=quiz_form['id']).all()
-            random_index = random.randint(0, len(questions)-1)
-            next_question = questions[random_index]
-            # print('step1', questions)
+                questions = Question.query.filter_by(category=quiz_category.get('id')).all()
 
-            stillQuestions = True
-            while next_question.id not in previous_form:
-                next_question = questions[random_index]
+            if not questions:
+                abort(404)
+
+            available_questions = [q for q in questions if q.id not in previous_questions]
+
+            if not available_questions:
                 return jsonify({
                     'success': True,
-                    'question': {
-                        "answer": next_question.answer,
-                        "category": next_question.category,
-                        "difficulty": next_question.difficulty,
-                        "id": next_question.id,
-                        "question": next_question.question
-                    },
-                    'previousQuestion': previous_form
+                    'message': 'No more questions available',
+                    'question': None,
+                    'previousQuestions': previous_questions
                 })
-        except Exception as e:
-            print('error: ', e)
-            abort(404)
 
+            next_question = random.choice(available_questions)
+
+            return jsonify({
+                'success': True,
+                'question': {
+                    'id': next_question.id,
+                    'question': next_question.question,
+                    'answer': next_question.answer,
+                    'category': next_question.category,
+                    'difficulty': next_question.difficulty
+                },
+                'previousQuestions': previous_questions
+            })
+
+        except Exception as e:
+            print('Error: ', e)
+            abort(500)
     """
     @TODO:
     Create error handlers for all expected errors
